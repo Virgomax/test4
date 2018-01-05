@@ -1,0 +1,32 @@
+// Mongo intallation
+C:\Program Files\MongoDB\Server\3.6\
+
+// Mongo executable
+C:\Program Files\MongoDB\Server\3.6\bin\mongod.exe
+
+//set database folder
+1) run CMD
+2) go to C:\Program Files\MongoDB\Server\3.6\bin\
+3) run next command:
+    mongod.exe --dbpath /Users/Martin/mongo-data
+
+4) leave this CMD window on a side and open a new one.
+5) in the new window , go to C:\Program Files\MongoDB\Server\3.6\bin\ 
+6) run :
+    mongo.exe
+7) now you are in the command view of the database
+
+//create a new record in new database "Todos"
+db.Todos.insert({text:'Create new Node course'});
+
+//find
+db.Todos.find();
+
+
+//Mongodb Facts:
+- The _id is random which eases scaling out (It's easy to get more database servers working at the same time)
+- the four first bytes of _id are a timestamp
+- the next three bytes are a machine identifier
+- the next two bytes are a process id just to create a unique identifier
+- the last three bytes are a counter
+- you can overwrite the _id
