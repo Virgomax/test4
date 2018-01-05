@@ -1,3 +1,6 @@
+//Mongoose Documentation:   http://mongoosejs.com/docs/guide.html
+
+
 //const MongoClient = require('mongodb').MongoClient; //mongo native library
 const {MongoClient,ObjectID} = require('mongodb'); //mongo native library
 const keys = require('../config/keys');
