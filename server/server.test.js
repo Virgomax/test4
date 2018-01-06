@@ -1,5 +1,6 @@
 const request=require('supertest');
 const expect=require('expect');
+const {ObjectID}= require('mongodb');
 const {app} = require('./server');
 
 const Todo = require('./models/todo');
@@ -90,4 +91,41 @@ describe('GET /todos',()=>{
   });
 })
 
+
+describe('GET /todos/:id',()=>{
+  it('should tell if it\'s an invalid id',(done)=>{
+    request(app)
+    .get('/todos/12345')
+    .expect(404)
+    .expect((res)=>{
+      expect(res.body).toEqual({});  //Invalid ID
+      console.log(res.body);
+    })
+    .end(done);
+  });
+
+  it('should tell if it didn\'t find the id',(done)=>{
+    var idThisTodo=new ObjectID().toHexString();
+    request(app)
+    .get('/todos/'+idThisTodo)
+    .expect(404)
+    .expect((res)=>{
+      expect(res.body).toEqual({}); //Id not found
+    })
+    .end(done);
+  });
+
+  it('should retrieve the todo if found',(done)=>{
+    Todo.findOne({text: "Second test todo"}).then((todo)=>{
+      var idThisTodo=todo._id.toHexString();
+      request(app)
+      .get('/todos/'+idThisTodo)
+      .expect(200)
+      .expect((res)=>{
+        expect(res.body.todo.text).toBe('Second test todo');
+      })
+      .end(done);
+    });
+  });
+})
 

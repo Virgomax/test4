@@ -51,16 +51,16 @@ app.get('/todos/:id',(req,res)=>{
   
   if(!ObjectID.isValid(id))
   {
-    res.status(404).send('Invalid ID');
+    res.status(404).send(''); //Invalid ID
   }
 
   Todo.findById(id).then((todo)=>{
     if(!todo){
       res.status(404).send();
-      return console.log('Id not found');
+      return console.log('');  //Id not found
     }
     console.log('todo',todo);
-    res.send(todo);
+    res.send({todo});
   }).catch((e)=>{
     console.log(e);
     res.status(400).send();
@@ -69,6 +69,27 @@ app.get('/todos/:id',(req,res)=>{
 })
 
 
+app.delete('/todos/:id',(req,res)=>{
+  var id=req.params.id;
+  
+  if(!ObjectID.isValid(id))
+  {
+    res.status(404).send(''); //Invalid ID
+  }
+
+  Todo.findByIdAndRemove(id).then((todo)=>{
+    if(!todo){
+      res.status(404).send();
+      return console.log('');  //Id not found
+    }
+    console.log('todo',todo);
+    res.send({todo});
+  }).catch((e)=>{
+    console.log(e);
+    res.status(400).send();
+  });
+
+})
 
 
 
