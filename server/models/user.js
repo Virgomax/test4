@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const secret = require('../config/secrets');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 var UserSchema = new mongoose.Schema({
    //this is a model
@@ -42,6 +43,8 @@ UserSchema.methods.toJSON = function () { //this function is automatically calle
   return _.pick(userObject,['_id','email']);
 }
 
+
+//Methods means that we are going to define a method of the instances
 UserSchema.methods.generateAuthToken = function(){
   var user = this;
   var access= 'auth';
@@ -52,6 +55,40 @@ UserSchema.methods.generateAuthToken = function(){
     return token;
   });
 }
+
+//Statics means that we are goning to define a static method of the model
+UserSchema.statics.findByToken = function (token) {
+  var User = this;
+  var decoded;
+
+  try {
+    decoded = jwt.verify(token, secret.jwtSecret); //jwt throws an error if verification fails
+  } catch (e) {
+    return Promise.reject();
+  }
+
+  return User.findOne({
+    _id: decoded._id, 
+    'tokens.token': token, //we use quotes and dots to query a nested attribute
+    'tokens.access': 'auth'
+  });
+};
+
+UserSchema.pre('save', function (next) {
+  var user = this;
+
+  // isModified explained in Lecture 92 @10:39
+  if (user.isModified('password')) {   //encrypt password only if it was just modified
+    bcrypt.genSalt(10, (err, salt) => {
+      bcrypt.hash(user.password, salt, (err, hash) => {
+        user.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 var User = mongoose.model('users',UserSchema);
 
