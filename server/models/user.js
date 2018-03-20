@@ -44,7 +44,7 @@ UserSchema.methods.toJSON = function () { //this function is automatically calle
 }
 
 
-//Methods means that we are going to define a method of the instances
+//Methods means that we are going to define an instance method
 UserSchema.methods.generateAuthToken = function(){
   var user = this;
   var access= 'auth';
@@ -56,7 +56,17 @@ UserSchema.methods.generateAuthToken = function(){
   });
 }
 
-//Statics means that we are goning to define a static method of the model
+UserSchema.methods.removeToken = function(token){
+  var user = this;
+  return user.update({
+    $pull: {  //mongoDB "$pull" operator: Let's you remove items from an array that match certain criteria.
+      tokens: {token}
+    }
+  })
+};
+
+
+//Statics means that we are goning to define a static method (of the model)
 UserSchema.statics.findByToken = function (token) {
   var User = this;
   var decoded;
