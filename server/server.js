@@ -9,6 +9,7 @@ const Todo = require('./models/todo');
 const User = require('./models/user');
 const authenticate = require('./middleware/authenticate');
 
+const bcrypt = require('bcryptjs');
 /*
 var newTodo = new Todo({
   text: 'Cook dinner',
@@ -131,7 +132,7 @@ app.post('/users',(req,res)=>{  //sign up route
   var user = new User(body);
 
   user.save().then((user)=>{  //receives user from database
-    return user.generateAuthToken();
+    return user.generateAuthToken(); //generate and save token in database, returns promise<token>
     
   }).then(token=>{
     res.header('x-auth',token).send(user);
@@ -150,6 +151,36 @@ app.get('/users/me',authenticate, (req,res)=>{
     res.send(req.user);
 
 })
+
+
+app.post('/users/login',(req,res)=>{
+  var body = _.pick(req.body,['email','password']);
+
+  User.findByCredentials(body.email,body.password).then(user=>{
+    return user.generateAuthToken().then(token=>{
+      res.header('x-auth',token).send(user);
+    })
+  }).catch(err=>{
+    res.status(404).send(err);
+  });
+/*
+  User.findOne({email: body.email},(err,user)=>{
+    //comparing the hashedPassword(in database) with the password(gotten from the user trying to log in)
+    bcrypt.compare(body.password,user.password,(err,passed)=>{
+      if(passed){
+        user.generateAuthToken() //generate and save token in database, returns promise<token>
+        .then(token=>{
+          res.header('x-auth',token).send(user);
+        }).catch(e=>{
+          res.status(400).send(e);
+        });
+      }
+      else{res.status(401).send(e);}
+    });
+  });
+*/
+});
+
 
 
 app.listen('3000', () => {

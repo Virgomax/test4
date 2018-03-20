@@ -1,30 +1,15 @@
 const request = require('supertest');
 const expect = require('expect');
 const { ObjectID } = require('mongodb');
-const { app } = require('./server');
+const { app } = require('../server');
 
-const Todo = require('./models/todo');
+const Todo = require('../models/todo');
+const User = require('../models/user');
+const {todoArray, populateTodos, userArray, populateUsers} = require('./seed/seed');
 
-const todoArray = [
-  {
-    text: 'First test todo'
-  },
-  {
-    text: 'Second test todo'
-  }
-];
-
-
+beforeEach(populateUsers);
 //empty the "todo" collection BEFORE STARTING EACH TEST (before every "it()")
-beforeEach((done) => {  //Testing lifecycle method 
-
-  Todo.remove({}).then(() => {
-    Todo.insertMany(todoArray).then(() => {
-      done();
-    });
-  });
-});
-
+beforeEach(populateTodos);
 
 //Now the test:
 describe('Post /todos', () => {
@@ -133,8 +118,6 @@ describe('GET /todos/:id', () => {
 });
 
 describe('DELETE /todos/:id', () => {
-
-
   it('should delete todo if found id', (done) => {
     Todo.findOne({ text: "Second test todo" }).then((todo) => {
       var idThisTodo = todo._id.toHexString();
@@ -176,3 +159,130 @@ describe('DELETE /todos/:id', () => {
     });
 });
 
+describe('GET /users/me', () => {
+  it('should return user if authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .set('x-auth', userArray[0].tokens[0].token) //set header
+      .expect(200)
+      .expect((res) => {
+        expect(res.body._id).toBe(userArray[0]._id.toHexString());
+        expect(res.body.email).toBe(userArray[0].email);
+      })
+      .end(done);
+  });
+
+  it('should return 401 if not authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect((res) => {
+        expect(res.body).toEqual({});
+      })
+      .end(done);
+  });
+});
+
+
+describe('POST /users', () => {
+  it('should create a user', (done) => {
+    var email = 'example@example.com';
+    var password = '123mnb!';
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(200)
+      .expect((res) => {
+        expect(res.headers['x-auth']).toBeTruthy();
+        expect(res.body._id).toBeTruthy();
+        expect(res.body.email).toBe(email);
+      })
+      .end((err) => {
+        if (err) {
+          return done(err); //when you pass the error means the test fails
+        }
+
+        User.findOne({email}).then((user) => {
+          expect(user).toBeTruthy();
+          expect(user.password).toNotBe(password);
+          done();
+        }).catch((e) => done(e));
+      });
+  });
+
+  it('should return validation errors if request invalid', (done) => {
+    request(app)
+      .post('/users')
+      .send({
+        email: 'and',
+        password: '123'
+      })
+      .expect(400)
+      .end(done);
+  });
+
+  it('should not create user if email in use', (done) => {
+    request(app)
+      .post('/users')
+      .send({
+        email: userArray[0].email,
+        password: 'Password123!'
+      })
+      .expect(400)
+      .end(done);
+  });
+});
+
+
+describe('POST /users/login',()=>{
+  it('should login user and return auth token',(done)=>{
+    request(app)
+    .post('/users/login')
+    .send({
+      email: userArray[1].email,
+      password: userArray[1].password
+    })
+    .expect(200)
+    .expect(res=>{
+      expect(res.headers['x-auth']).toExist();
+    })
+    .end((err,res)=>{
+      if(err){
+        return done(err);
+      }
+      
+      User.findById(userArray[1]._id).then(user=>{
+        expect(user.tokens[0]).toInclude({
+          access: 'auth',
+          token: res.headers['x-auth']
+        });
+        done();
+      }).catch(err=>{done(err)})
+    })
+
+  });
+
+  it('should reject invalid login',(done)=>{
+    request(app)
+    .post('/users/login')
+    .send({
+      email: userArray[1].email,
+      password: 'incorrectPassword'
+    })
+    .expect(404)
+    .expect(res=>{
+      expect(res.headers['x-auth']).toNotExist();
+    })
+    .end((err,res)=>{
+      if(err){
+        return done(err);
+      }
+      
+      User.findById(userArray[1]._id).then(user=>{
+        expect(user.tokens.length).toBe(0);
+        done();
+      }).catch(err=>{done(err)})
+    })
+  })
+})
